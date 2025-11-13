@@ -22,4 +22,4 @@ Fill a brief description of this experiment here
 SrNo | Name | Faculty or Student | Department| Institute | Email id
 :--|:--|:--|:--|:--|:--|
 1 | Prakash Kumar. | Student. |  Information Technology. | Rajkiya Engineering College Banda . | prakash953449@gmail.com.
-2 | xyz. | Student. | Information Technology. | Rajkiya Engineering College Banda. | .
+2 | . | . | . | . | .
