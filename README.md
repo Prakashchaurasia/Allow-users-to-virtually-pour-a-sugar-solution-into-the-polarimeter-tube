@@ -1,24 +1,24 @@
 ## Introduction
 
 
-<b>Discipline | <b>Fill your discipline name here
+<b>Discipline | <b>Information Technology
 :--|:--|
-<b> Lab | <b> Fill your lab name here
+<b> Lab | <b>Virtual Lab
 <b> Experiment|     <b> Fill your experiment name and number here
 
 ### About the Experiment 
 
 Fill a brief description of this experiment here
 
-<b>Name of Developer | <b> Fill the name of experiment owner here 
+<b>Name of Developer | <b> Dr. Ashutosh Tiwari 
 :--|:--|
-<b> Institute | <b>  
+<b> Institute | <b> Rajkiya Engineering College Banda 
 <b> Email id|     <b>  
-<b> Department |  
+<b> Department |  Information Technology
 
 ### Contributors List
 
 SrNo | Name | Faculty or Student | Department| Institute | Email id
 :--|:--|:--|:--|:--|:--|
-1 | . | . | . | . | .
+1 | Prakash Kumar. | Student. |  Information Technology. | Rajkiya Engineering College Banda . | prakash953449@gmail.com.
 2 | . | . | . | . | .
