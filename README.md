@@ -4,7 +4,8 @@
 <b>Discipline | <b>Information Technology
 :--|:--|
 <b> Lab | <b>Virtual Lab
-<b> Experiment|     <b> Fill your experiment name and number here
+<b> Experiment|     <b> Allow users to virtually pour a sugar solution into the polarimeter tube
+
 
 ### About the Experiment 
 
