@@ -1,241 +1,174 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Virtual Polarimeter – Sugar Solution Experiment</title>
+<html>
+  <head>
+    <title>VR Polarimeter Simulation</title>
+    <meta name="description" content="Pouring Sugar Solution into Polarimeter Tube">
+    <!-- Load A-Frame Library -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <!-- Load Environment Component for a nice background -->
+    <script src="https://unpkg.com/aframe-environment-component@1.3.2/dist/aframe-environment-component.min.js"></script>
+    
+    <script>
+      // Component to handle the pouring logic
+      AFRAME.registerComponent('pour-action', {
+        init: function () {
+          this.el.addEventListener('click', this.animatePour.bind(this));
+          this.isPouring = false;
+        },
 
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #f2f4f7;
-    text-align: center;
-}
+        animatePour: function () {
+          if (this.isPouring) return; // Prevent double clicks
+          this.isPouring = true;
 
-canvas {
-    border: 2px solid #333;
-    background: #fff;
-    margin-top: 15px;
-}
+          const beaker = document.querySelector('#beakerGroup');
+          const stream = document.querySelector('#liquidStream');
+          const tubeLiquid = document.querySelector('#tubeLiquid');
+          const beakerLiquid = document.querySelector('#beakerLiquid');
+          const statusText = document.querySelector('#statusText');
 
-.controls {
-    margin-top: 15px;
-}
+          statusText.setAttribute('value', 'Moving beaker...');
 
-label {
-    font-weight: bold;
-}
+          // 1. Move Beaker to Tube Position
+          beaker.emit('moveToTube');
 
-.table-box {
-    margin: 15px auto;
-    width: 65%;
-}
+          // Wait for move to finish, then tilt
+          setTimeout(() => {
+            statusText.setAttribute('value', 'Pouring solution...');
+            beaker.emit('tiltBeaker');
+            
+            // Show stream and animate liquids
+            setTimeout(() => {
+              stream.setAttribute('visible', 'true');
+              
+              // Animate Tube Filling (Scale Y from 0 to 1)
+              tubeLiquid.emit('fillTube');
+              
+              // Animate Beaker Emptying (Scale Y from 1 to 0)
+              beakerLiquid.emit('emptyBeaker');
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
+              // Finish Pouring
+              setTimeout(() => {
+                stream.setAttribute('visible', 'false');
+                beaker.emit('untiltBeaker');
+                statusText.setAttribute('value', 'Pour complete!');
+                
+                // Return beaker to start
+                setTimeout(() => {
+                    beaker.emit('returnBeaker');
+                    this.isPouring = false;
+                }, 1000);
 
-th, td {
-    border: 1px solid #333;
-    padding: 6px;
-}
-</style>
-</head>
+              }, 4000); // Duration of pour
+            }, 1000); // Wait for tilt animation
+          }, 1500); // Wait for move animation
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <a-scene cursor="rayOrigin: mouse" raycaster="objects: .clickable">
+      
+      <!-- 1. Environment: A Science Lab style room -->
+      <a-entity environment="preset: starry; groundColor: #445; grid: none; horizonColor: #ddd; skyColor: #111"></a-entity>
 
-<body>
+      <!-- Lights -->
+      <a-entity light="type: ambient; intensity: 0.6;"></a-entity>
+      <a-entity light="type: point; intensity: 0.8; distance: 10; decay: 2" position="0 3 0"></a-entity>
+      <a-entity light="type: directional; intensity: 0.5;" position="-1 4 2"></a-entity>
 
-<h2>Virtual Polarimeter Experiment (Sugar Solution)</h2>
-<p>Pour the solution, rotate analyzer, and observe optical rotation</p>
+      <!-- 2. The Lab Table -->
+      <a-box position="0 0.8 -1.5" width="3" height="0.1" depth="1.5" color="#5c5c5c" roughness="0.5"></a-box>
+      <!-- Table Legs -->
+      <a-cylinder position="-1.2 0.4 -1.2" radius="0.05" height="0.8" color="#333"></a-cylinder>
+      <a-cylinder position="1.2 0.4 -1.2" radius="0.05" height="0.8" color="#333"></a-cylinder>
+      <a-cylinder position="-1.2 0.4 -2.0" radius="0.05" height="0.8" color="#333"></a-cylinder>
+      <a-cylinder position="1.2 0.4 -2.0" radius="0.05" height="0.8" color="#333"></a-cylinder>
 
-<div class="controls">
-    <label>Tilt Angle (°): </label>
-    <input type="range" id="tiltSlider" min="0" max="60" value="0">
-    <span id="tiltValue">0</span>°
-    <br><br>
+      <!-- 3. The Polarimeter Tube (Target) -->
+      <!-- Holder Stand -->
+      <a-box position="0 0.9 -1.5" width="0.1" height="0.2" depth="0.1" color="#222"></a-box>
+      
+      <!-- The Glass Tube -->
+      <a-cylinder position="0 1.15 -1.5" radius="0.04" height="0.6" color="#FFF" opacity="0.3" transparent="true" side="double">
+      </a-cylinder>
+      
+      <!-- The Liquid Inside Tube (Initially empty/invisible) -->
+      <!-- We scale it on the Y axis to simulate filling -->
+      <a-cylinder id="tubeLiquid" 
+                  position="0 0.85 -1.5" 
+                  radius="0.035" 
+                  height="0.6" 
+                  color="#FFD700" 
+                  opacity="0.8"
+                  scale="1 0 1"
+                  animation="property: scale; to: 1 1 1; dur: 4000; easing: linear; startEvents: fillTube">
+         <!-- Shift pivot point so it grows from bottom up? 
+              A-Frame scales from center, so we positioned it lower (0.85) so when it scales up (center moves up) it looks like filling. -->
+         <!-- Correcting position logic: Center of full tube is 1.15. Height 0.6. Bottom is 0.85. 
+              If scale is 0, it vanishes. If scale 1, center is at 0.85? No.
+              We need a wrapper for bottom-up scaling or animate position + scale. 
+              Simpler approach: Animate position and scale together.
+         -->
+         <a-animation attribute="position" to="0 1.15 -1.5" dur="4000" startEvents="fillTube"></a-animation>
+      </a-cylinder>
 
-    <label>Sugar Concentration (g/mL): </label>
-    <input type="number" id="concentration" value="0.2" step="0.05">
-    <br><br>
 
-    <label>Analyzer Rotation (°): </label>
-    <input type="range" id="analyzer" min="-30" max="30" value="0">
-    <span id="analyzerValue">0</span>°
-</div>
+      <!-- 4. The Beaker (Source) -->
+      <!-- Group wrapper for animation logic -->
+      <a-entity id="beakerGroup" position="0.5 0.85 -1.2"
+                pour-action
+                class="clickable"
+                animation__move="property: position; to: 0.15 1.6 -1.5; dur: 1500; startEvents: moveToTube"
+                animation__return="property: position; to: 0.5 0.85 -1.2; dur: 1500; startEvents: returnBeaker"
+                animation__tilt="property: rotation; to: 0 0 60; dur: 1000; startEvents: tiltBeaker"
+                animation__untilt="property: rotation; to: 0 0 0; dur: 1000; startEvents: untiltBeaker">
+        
+        <!-- Hover Text -->
+        <a-text value="Click to Pour" position="0 0.3 0" align="center" color="white" scale="0.5 0.5 0.5" side="double"></a-text>
 
-<canvas id="labCanvas" width="900" height="450"></canvas>
+        <!-- Glass Beaker Body -->
+        <a-cylinder position="0 0.15 0" radius="0.1" height="0.3" color="#FFF" opacity="0.4" transparent="true" open-ended="true" side="double"></a-cylinder>
+        <a-circle position="0 0 0" radius="0.1" rotation="-90 0 0" color="#FFF" opacity="0.4" transparent="true"></a-circle>
+        
+        <!-- Liquid in Beaker -->
+        <a-cylinder id="beakerLiquid" 
+                    position="0 0.1 0" 
+                    radius="0.09" 
+                    height="0.2" 
+                    color="#FFD700" 
+                    opacity="0.9"
+                    animation="property: scale; to: 1 0 1; dur: 4000; easing: linear; startEvents: emptyBeaker"
+                    animation__pos="property: position; to: 0 0.05 0; dur: 4000; easing: linear; startEvents: emptyBeaker">
+        </a-cylinder>
+        
+        <!-- The Stream (Hidden initially) -->
+        <!-- Attached to beaker so it rotates with it -->
+        <a-cylinder id="liquidStream"
+                    visible="false"
+                    position="-0.2 0.3 0" 
+                    rotation="0 0 -60"
+                    radius="0.01" 
+                    height="0.6" 
+                    color="#FFD700" 
+                    opacity="0.8">
+        </a-cylinder>
+      </a-entity>
 
-<p>
-<b>Calculated Optical Rotation (α):</b>
-<span id="rotation">0</span>°
-</p>
+      <!-- Instructions & UI -->
+      <a-entity position="0 1.6 -1" text="value: VR Sugar Solution Simulation; align: center; width: 3; color: #FFF; shader: msdf;"></a-entity>
+      <a-entity id="statusText" position="0 1.4 -1" text="value: Point at the beaker and Click; align: center; width: 2; color: #FFFF00;"></a-entity>
 
-<div class="table-box">
-<table>
-<tr>
-    <th>Concentration (g/mL)</th>
-    <th>Tube Filled (%)</th>
-    <th>Optical Rotation (°)</th>
-</tr>
-<tr>
-    <td id="obsC">0.2</td>
-    <td id="obsL">0</td>
-    <td id="obsA">0</td>
-</tr>
-</table>
-</div>
+      <!-- Camera and Controls -->
+      <a-entity position="0 1.6 0">
+        <a-camera look-controls wasd-controls>
+          <a-cursor color="yellow" fuse="false"></a-cursor>
+        </a-camera>
+      </a-entity>
+      
+      <!-- VR Controller support -->
+      <a-entity laser-controls="hand: left" raycaster="objects: .clickable; far: 5"></a-entity>
+      <a-entity laser-controls="hand: right" raycaster="objects: .clickable; far: 5"></a-entity>
 
-<script>
-const canvas = document.getElementById("labCanvas");
-const ctx = canvas.getContext("2d");
-
-const tiltSlider = document.getElementById("tiltSlider");
-const analyzerSlider = document.getElementById("analyzer");
-const concentrationInput = document.getElementById("concentration");
-
-const rotationText = document.getElementById("rotation");
-const obsC = document.getElementById("obsC");
-const obsL = document.getElementById("obsL");
-const obsA = document.getElementById("obsA");
-
-let beaker = { x: 230, y: 230, angle: 0 };
-let tube = { x: 600, y: 100, width: 45, height: 220, fill: 0, maxFill: 180 };
-
-/* ===== BEAKER STYLING ===== */
-function drawBeaker() {
-    ctx.save();
-    ctx.translate(beaker.x, beaker.y);
-    ctx.rotate(beaker.angle * Math.PI / 180);
-
-    // glass body
-    ctx.beginPath();
-    ctx.roundRect(-45, -65, 90, 130, 12);
-    ctx.strokeStyle = "#555";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // liquid
-    ctx.fillStyle = "rgba(0,150,255,0.35)";
-    ctx.beginPath();
-    ctx.roundRect(-40, 15, 80, 35, 8);
-    ctx.fill();
-
-    // meniscus
-    ctx.beginPath();
-    ctx.moveTo(-40, 15);
-    ctx.quadraticCurveTo(0, 10, 40, 15);
-    ctx.strokeStyle = "rgba(0,120,220,0.9)";
-    ctx.stroke();
-
-    ctx.restore();
-}
-
-/* ===== POLARIMETER TUBE STYLING ===== */
-function drawTube() {
-    // outer glass
-    ctx.beginPath();
-    ctx.roundRect(tube.x - 6, tube.y - 6, tube.width + 12, tube.height + 12, 18);
-    ctx.strokeStyle = "#444";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // inner tube
-    ctx.beginPath();
-    ctx.roundRect(tube.x, tube.y, tube.width, tube.height, 15);
-    ctx.strokeStyle = "#aaa";
-    ctx.stroke();
-
-    // liquid
-    ctx.fillStyle = "rgba(0,150,255,0.55)";
-    ctx.beginPath();
-    ctx.roundRect(
-        tube.x + 2,
-        tube.y + tube.height - tube.fill,
-        tube.width - 4,
-        tube.fill,
-        10
-    );
-    ctx.fill();
-
-    // meniscus
-    ctx.beginPath();
-    ctx.moveTo(tube.x + 2, tube.y + tube.height - tube.fill);
-    ctx.quadraticCurveTo(
-        tube.x + tube.width / 2,
-        tube.y + tube.height - tube.fill - 6,
-        tube.x + tube.width - 2,
-        tube.y + tube.height - tube.fill
-    );
-    ctx.strokeStyle = "rgba(0,120,220,0.9)";
-    ctx.stroke();
-
-    // stand
-    ctx.fillStyle = "#666";
-    ctx.fillRect(tube.x - 15, tube.y + tube.height + 12, tube.width + 30, 6);
-}
-
-/* ===== ANALYZER DIAL ===== */
-function drawAnalyzerDial() {
-    ctx.beginPath();
-    ctx.arc(760, 220, 45, 0, Math.PI * 2);
-    ctx.strokeStyle = "#333";
-    ctx.stroke();
-
-    let angle = analyzerSlider.value * Math.PI / 180;
-    ctx.beginPath();
-    ctx.moveTo(760, 220);
-    ctx.lineTo(760 + 40 * Math.cos(angle), 220 + 40 * Math.sin(angle));
-    ctx.strokeStyle = "red";
-    ctx.stroke();
-}
-
-/* ===== POURING LOGIC ===== */
-function pourLiquid() {
-    if (beaker.angle > 25 && tube.fill < tube.maxFill) {
-        tube.fill += 0.6;
-
-        ctx.beginPath();
-        ctx.moveTo(beaker.x + 40, beaker.y);
-        ctx.lineTo(tube.x + tube.width / 2, tube.y);
-        ctx.strokeStyle = "rgba(0,120,255,0.8)";
-        ctx.lineWidth = 3;
-        ctx.stroke();
-    }
-}
-
-/* ===== OPTICAL ROTATION ===== */
-function calculateRotation() {
-    // α = [α] × l × c
-    let specificRotation = 66.5; // sucrose
-    let concentration = parseFloat(concentrationInput.value);
-    let pathLength = tube.fill / tube.maxFill;
-
-    let alpha = specificRotation * pathLength * concentration;
-    rotationText.textContent = alpha.toFixed(2);
-
-    obsC.textContent = concentration.toFixed(2);
-    obsL.textContent = Math.round(pathLength * 100);
-    obsA.textContent = alpha.toFixed(2);
-}
-
-/* ===== MAIN LOOP ===== */
-function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    beaker.angle = tiltSlider.value;
-    document.getElementById("tiltValue").textContent = beaker.angle;
-    document.getElementById("analyzerValue").textContent = analyzerSlider.value;
-
-    drawBeaker();
-    drawTube();
-    drawAnalyzerDial();
-    pourLiquid();
-    calculateRotation();
-
-    requestAnimationFrame(animate);
-}
-
-animate();
-</script>
-
-</body>
+    </a-scene>
+  </body>
 </html>
