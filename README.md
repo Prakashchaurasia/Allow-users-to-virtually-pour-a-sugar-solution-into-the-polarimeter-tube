@@ -11,14 +11,14 @@
 
 Fill a brief description of this experiment here
 
-<b>Name of Developer | <b> Dr. Ashutosh Tiwari 
+<b>Name of Developer | <b> Prakash Kumar
 :--|:--|
 <b> Institute | <b> Rajkiya Engineering College Banda 
-<b> Email id|     <b>  
+<b> Email id|     <b> 2407340130042@recbanda.ac.in 
 <b> Department |  Information Technology
 
 ### Contributors List
 
 SrNo | Name | Faculty or Student | Department| Institute | Email id
 :--|:--|:--|:--|:--|:--|
-1 | Prakash Kumar | Student |  Information Technology | Rajkiya Engineering College Banda  | prakash953449@gmail.com
+1 | Prakash Kumar | Student |  Information Technology | Rajkiya Engineering College Banda  | 2407340130042@recbanda.ac.in
