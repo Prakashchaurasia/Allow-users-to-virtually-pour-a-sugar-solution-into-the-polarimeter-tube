@@ -3,21 +3,16 @@
   <head>
     <title>VR Polarimeter Simulation</title>
     <meta name="description" content="Pouring Sugar Solution into Polarimeter Tube">
-    <!-- Load A-Frame Library -->
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <!-- Load Environment Component for a nice background -->
     <script src="https://unpkg.com/aframe-environment-component@1.3.2/dist/aframe-environment-component.min.js"></script>
-    
     <script>
-      // Component to handle the pouring logic
       AFRAME.registerComponent('pour-action', {
         init: function () {
           this.el.addEventListener('click', this.animatePour.bind(this));
           this.isPouring = false;
         },
-
         animatePour: function () {
-          if (this.isPouring) return; // Prevent double clicks
+          if (this.isPouring) return;
           this.isPouring = true;
 
           const beaker = document.querySelector('#beakerGroup');
@@ -27,94 +22,55 @@
           const statusText = document.querySelector('#statusText');
 
           statusText.setAttribute('value', 'Moving beaker...');
-
-          // 1. Move Beaker to Tube Position
           beaker.emit('moveToTube');
 
-          // Wait for move to finish, then tilt
           setTimeout(() => {
             statusText.setAttribute('value', 'Pouring solution...');
             beaker.emit('tiltBeaker');
-            
-            // Show stream and animate liquids
+
             setTimeout(() => {
               stream.setAttribute('visible', 'true');
-              
-              // Animate Tube Filling (Scale Y from 0 to 1)
               tubeLiquid.emit('fillTube');
-              
-              // Animate Beaker Emptying (Scale Y from 1 to 0)
               beakerLiquid.emit('emptyBeaker');
 
-              // Finish Pouring
               setTimeout(() => {
                 stream.setAttribute('visible', 'false');
                 beaker.emit('untiltBeaker');
                 statusText.setAttribute('value', 'Pour complete!');
-                
-                // Return beaker to start
-                setTimeout(() => {
-                    beaker.emit('returnBeaker');
-                    this.isPouring = false;
-                }, 1000);
 
-              }, 4000); // Duration of pour
-            }, 1000); // Wait for tilt animation
-          }, 1500); // Wait for move animation
+                setTimeout(() => {
+                  beaker.emit('returnBeaker');
+                  this.isPouring = false;
+                }, 1000);
+              }, 4000);
+            }, 1000);
+          }, 1500);
         }
       });
     </script>
   </head>
   <body>
     <a-scene cursor="rayOrigin: mouse" raycaster="objects: .clickable">
-      
-      <!-- 1. Environment: A Science Lab style room -->
       <a-entity environment="preset: starry; groundColor: #445; grid: none; horizonColor: #ddd; skyColor: #111"></a-entity>
 
-      <!-- Lights -->
       <a-entity light="type: ambient; intensity: 0.6;"></a-entity>
       <a-entity light="type: point; intensity: 0.8; distance: 10; decay: 2" position="0 3 0"></a-entity>
       <a-entity light="type: directional; intensity: 0.5;" position="-1 4 2"></a-entity>
 
-      <!-- 2. The Lab Table -->
-      <a-box position="0 0.8 -1.5" width="3" height="0.1" depth="1.5" color="#5c5c5c" roughness="0.5"></a-box>
-      <!-- Table Legs -->
+      <a-box position="0 0.8 -1.5" width="3" height="0.1" depth="1.5" color="#5c5c5c"></a-box>
       <a-cylinder position="-1.2 0.4 -1.2" radius="0.05" height="0.8" color="#333"></a-cylinder>
       <a-cylinder position="1.2 0.4 -1.2" radius="0.05" height="0.8" color="#333"></a-cylinder>
       <a-cylinder position="-1.2 0.4 -2.0" radius="0.05" height="0.8" color="#333"></a-cylinder>
       <a-cylinder position="1.2 0.4 -2.0" radius="0.05" height="0.8" color="#333"></a-cylinder>
 
-      <!-- 3. The Polarimeter Tube (Target) -->
-      <!-- Holder Stand -->
       <a-box position="0 0.9 -1.5" width="0.1" height="0.2" depth="0.1" color="#222"></a-box>
-      
-      <!-- The Glass Tube -->
-      <a-cylinder position="0 1.15 -1.5" radius="0.04" height="0.6" color="#FFF" opacity="0.3" transparent="true" side="double">
-      </a-cylinder>
-      
-      <!-- The Liquid Inside Tube (Initially empty/invisible) -->
-      <!-- We scale it on the Y axis to simulate filling -->
-      <a-cylinder id="tubeLiquid" 
-                  position="0 0.85 -1.5" 
-                  radius="0.035" 
-                  height="0.6" 
-                  color="#FFD700" 
-                  opacity="0.8"
-                  scale="1 0 1"
+      <a-cylinder position="0 1.15 -1.5" radius="0.04" height="0.6" color="#FFF" opacity="0.3" transparent="true"></a-cylinder>
+
+      <a-cylinder id="tubeLiquid" position="0 0.85 -1.5" radius="0.035" height="0.6" color="#FFD700" opacity="0.8" scale="1 0 1"
                   animation="property: scale; to: 1 1 1; dur: 4000; easing: linear; startEvents: fillTube">
-         <!-- Shift pivot point so it grows from bottom up? 
-              A-Frame scales from center, so we positioned it lower (0.85) so when it scales up (center moves up) it looks like filling. -->
-         <!-- Correcting position logic: Center of full tube is 1.15. Height 0.6. Bottom is 0.85. 
-              If scale is 0, it vanishes. If scale 1, center is at 0.85? No.
-              We need a wrapper for bottom-up scaling or animate position + scale. 
-              Simpler approach: Animate position and scale together.
-         -->
-         <a-animation attribute="position" to="0 1.15 -1.5" dur="4000" startEvents="fillTube"></a-animation>
+        <a-animation attribute="position" to="0 1.15 -1.5" dur="4000" startEvents="fillTube"></a-animation>
       </a-cylinder>
 
-
-      <!-- 4. The Beaker (Source) -->
-      <!-- Group wrapper for animation logic -->
       <a-entity id="beakerGroup" position="0.5 0.85 -1.2"
                 pour-action
                 class="clickable"
@@ -122,53 +78,29 @@
                 animation__return="property: position; to: 0.5 0.85 -1.2; dur: 1500; startEvents: returnBeaker"
                 animation__tilt="property: rotation; to: 0 0 60; dur: 1000; startEvents: tiltBeaker"
                 animation__untilt="property: rotation; to: 0 0 0; dur: 1000; startEvents: untiltBeaker">
-        
-        <!-- Hover Text -->
-        <a-text value="Click to Pour" position="0 0.3 0" align="center" color="white" scale="0.5 0.5 0.5" side="double"></a-text>
 
-        <!-- Glass Beaker Body -->
-        <a-cylinder position="0 0.15 0" radius="0.1" height="0.3" color="#FFF" opacity="0.4" transparent="true" open-ended="true" side="double"></a-cylinder>
+        <a-text value="Click to Pour" position="0 0.3 0" align="center" color="white" scale="0.5 0.5 0.5"></a-text>
+        <a-cylinder position="0 0.15 0" radius="0.1" height="0.3" color="#FFF" opacity="0.4" transparent="true"></a-cylinder>
         <a-circle position="0 0 0" radius="0.1" rotation="-90 0 0" color="#FFF" opacity="0.4" transparent="true"></a-circle>
-        
-        <!-- Liquid in Beaker -->
-        <a-cylinder id="beakerLiquid" 
-                    position="0 0.1 0" 
-                    radius="0.09" 
-                    height="0.2" 
-                    color="#FFD700" 
-                    opacity="0.9"
+
+        <a-cylinder id="beakerLiquid" position="0 0.1 0" radius="0.09" height="0.2" color="#FFD700" opacity="0.9"
                     animation="property: scale; to: 1 0 1; dur: 4000; easing: linear; startEvents: emptyBeaker"
-                    animation__pos="property: position; to: 0 0.05 0; dur: 4000; easing: linear; startEvents: emptyBeaker">
-        </a-cylinder>
-        
-        <!-- The Stream (Hidden initially) -->
-        <!-- Attached to beaker so it rotates with it -->
-        <a-cylinder id="liquidStream"
-                    visible="false"
-                    position="-0.2 0.3 0" 
-                    rotation="0 0 -60"
-                    radius="0.01" 
-                    height="0.6" 
-                    color="#FFD700" 
-                    opacity="0.8">
-        </a-cylinder>
+                    animation__pos="property: position; to: 0 0.05 0; dur: 4000; easing: linear; startEvents: emptyBeaker"></a-cylinder>
+
+        <a-cylinder id="liquidStream" visible="false" position="-0.2 0.3 0" rotation="0 0 -60" radius="0.01" height="0.6" color="#FFD700" opacity="0.8"></a-cylinder>
       </a-entity>
 
-      <!-- Instructions & UI -->
-      <a-entity position="0 1.6 -1" text="value: VR Sugar Solution Simulation; align: center; width: 3; color: #FFF; shader: msdf;"></a-entity>
+      <a-entity position="0 1.6 -1" text="value: VR Sugar Solution Simulation; align: center; width: 3; color: #FFF;"></a-entity>
       <a-entity id="statusText" position="0 1.4 -1" text="value: Point at the beaker and Click; align: center; width: 2; color: #FFFF00;"></a-entity>
 
-      <!-- Camera and Controls -->
       <a-entity position="0 1.6 0">
         <a-camera look-controls wasd-controls>
           <a-cursor color="yellow" fuse="false"></a-cursor>
         </a-camera>
       </a-entity>
-      
-      <!-- VR Controller support -->
+
       <a-entity laser-controls="hand: left" raycaster="objects: .clickable; far: 5"></a-entity>
       <a-entity laser-controls="hand: right" raycaster="objects: .clickable; far: 5"></a-entity>
-
     </a-scene>
   </body>
 </html>
